@@ -86,7 +86,7 @@ jobs:
 
       - name: Load secrets from 1Password
         id: op-load-secrets
-        uses: 1password/load-secrets-action@v2
+        uses: 1password/load-secrets-action@v3
         with:
           export-env: true
         env:
@@ -146,7 +146,7 @@ jobs:
 
       - name: Load secrets from 1Password
         id: op-load-secrets
-        uses: 1password/load-secrets-action@v2
+        uses: 1password/load-secrets-action@v3
         with:
           export-env: true
         env:
@@ -184,7 +184,7 @@ jobs:
     steps:
       - name: Load secrets from 1Password
         id: op-load-secrets
-        uses: 1password/load-secrets-action@v2
+        uses: 1password/load-secrets-action@v3
         with:
           export-env: true
         env:
