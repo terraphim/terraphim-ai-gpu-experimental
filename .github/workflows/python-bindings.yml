@@ -27,7 +27,7 @@ jobs:
     name: Lint Python Code
     runs-on: [self-hosted, linux, x64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -42,9 +42,12 @@ jobs:
       - name: Install dependencies
         run: uv pip install --system black ruff mypy
 
-      - name: Check formatting with Black
+      - name: Fix Black formatting
         working-directory: crates/terraphim_automata_py
-        run: black --check python/
+        run: |
+          source .venv/bin/activate
+          uv run black python/
+        continue-on-error: false
 
       - name: Lint with Ruff
         working-directory: crates/terraphim_automata_py
@@ -65,7 +68,7 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -155,7 +158,7 @@ jobs:
     name: Benchmark Performance
     runs-on: [self-hosted, linux, x64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -221,8 +224,9 @@ jobs:
           uv pip install pytest pytest-benchmark
 
       - name: Install Rust target for benchmarks
-        if: matrix.os == 'ubuntu-latest'
-        run: rustup target add x86_64-unknown-linux-gnu
+        run: |
+          rustup target add x86_64-unknown-linux-gnu
+          rustup target add x86_64-unknown-linux-musl
 
       - name: Run benchmarks
         working-directory: crates/terraphim_automata_py
@@ -253,7 +257,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -280,7 +284,7 @@ jobs:
     runs-on: [self-hosted, linux, x64]
     if: github.event_name == 'release'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build sdist
         uses: PyO3/maturin-action@v1

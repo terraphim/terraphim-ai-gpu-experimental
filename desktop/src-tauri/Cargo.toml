@@ -35,7 +35,7 @@ terraphim_types = { path = "../../crates/terraphim_types", version = "1.0.0", fe
 terraphim_persistence = { path = "../../crates/terraphim_persistence", version = "1.0.0" }
 terraphim_service = { path = "../../crates/terraphim_service", version = "1.0.0" }
 terraphim_mcp_server = { path = "../../crates/terraphim_mcp_server", version = "1.0.0" }
-rmcp = { version = "0.6.1", features = ["server"] }
+rmcp = { version = "0.9.0", features = ["server"] }
 serde_json_any_key = "2.0.0"
 anyhow = "1.0.81"
 log = "0.4.21"
@@ -68,7 +68,7 @@ lru = "0.16"
 tokio-test = "0.4.4"
 serial_test = "3.1.1"
 tempfile = "3.23.0"
-mockall = "0.13.1"
+mockall = "0.14.0"
 
 [features]
 # by default Tauri runs in production mode
@@ -77,8 +77,8 @@ default = ["custom-protocol"]
 # this feature is used used for production builds where `devPath` points to the filesystem
 # DO NOT remove this
 custom-protocol = ["tauri/custom-protocol"]
-# Enable atomic server client integration
-atomic = ["terraphim_atomic_client", "terraphim_middleware/atomic"]
+# Enable atomic server client integration (temporarily disabled for publishing)
+# atomic = ["terraphim_atomic_client", "terraphim_middleware/atomic"]
 # OpenRouter AI integration feature
 openrouter = ["terraphim_service/openrouter", "terraphim_config/openrouter"]
 # Optional database backends
