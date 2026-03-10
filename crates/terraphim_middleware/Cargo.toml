@@ -1,6 +1,6 @@
 [package]
 name = "terraphim_middleware"
-version = "1.0.0"
+version = "1.2.3"
 edition = "2021"
 authors = ["Terraphim Contributors"]
 description = "Terraphim middleware for searching haystacks"
@@ -38,7 +38,7 @@ scraper = "0.24.0"
 reqwest-eventsource = { version = "0.5", optional = true }
 mcp-client = { version = "0.1", optional = true }
 mcp-spec = { version = "0.1", optional = true }
-rmcp = { version = "0.6", features = ["client", "transport-child-process"], optional = true }
+rmcp = { version = "0.9", features = ["client", "transport-child-process"], optional = true }
 
 [dev-dependencies]
 terraphim_persistence = { path = "../terraphim_persistence", features = ["memory"] }
@@ -55,8 +55,8 @@ tempfile = "3.23"
 
 [features]
 default = []
-# Enable atomic server client integration
-atomic = ["terraphim_atomic_client"]
+# Enable atomic server client integration (disabled for publishing)
+# atomic = ["terraphim_atomic_client"]
 # Enable openrouter integration
 openrouter = ["terraphim_config/openrouter"]
 # Enable SSE-based MCP client probing
