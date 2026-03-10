@@ -11,9 +11,7 @@ use rmcp::{
     RoleServer, ServerHandler,
 };
 use terraphim_automata::builder::json_decode;
-use terraphim_automata::matcher::{
-    extract_paragraphs_from_automata, find_matches, replace_matches,
-};
+use terraphim_automata::matcher::{extract_paragraphs_from_automata, find_matches};
 use terraphim_automata::{AutocompleteConfig, AutocompleteIndex, AutocompleteResult};
 use terraphim_config::{Config, ConfigState};
 use terraphim_service::TerraphimService;
@@ -781,28 +779,26 @@ impl McpService {
             .await
             .map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
 
-        // Determine which role to use (provided role or selected role)
         let role_name = if let Some(role_str) = role {
             RoleName::from(role_str)
         } else {
             self.config_state.get_selected_role().await
         };
 
-        // Parse link type
         let link_type_enum = match link_type.to_lowercase().as_str() {
-            "wiki" | "wikilinks" => terraphim_automata::LinkType::WikiLinks,
-            "html" | "htmllinks" => terraphim_automata::LinkType::HTMLLinks,
-            "markdown" | "md" => terraphim_automata::LinkType::MarkdownLinks,
+            "wiki" | "wikilinks" => terraphim_hooks::LinkType::WikiLinks,
+            "html" | "htmllinks" => terraphim_hooks::LinkType::HTMLLinks,
+            "markdown" | "md" => terraphim_hooks::LinkType::MarkdownLinks,
+            "plain" | "plaintext" => terraphim_hooks::LinkType::PlainText,
             _ => {
                 let error_content = Content::text(format!(
-                    "Invalid link type '{}'. Supported types: wiki, html, markdown",
+                    "Invalid link type '{}'. Supported types: wiki, html, markdown, plain",
                     link_type
                 ));
                 return Ok(CallToolResult::error(vec![error_content]));
             }
         };
 
-        // Load thesaurus for the role
         match service.ensure_thesaurus_loaded(&role_name).await {
             Ok(thesaurus_data) => {
                 if thesaurus_data.is_empty() {
@@ -813,19 +809,17 @@ impl McpService {
                     return Ok(CallToolResult::error(vec![error_content]));
                 }
 
-                match replace_matches(&text, thesaurus_data, link_type_enum) {
-                    Ok(replaced_bytes) => {
-                        let replaced_text = String::from_utf8(replaced_bytes)
-                            .unwrap_or_else(|_| "Binary output (non-UTF8)".to_string());
+                let replacement_service = terraphim_hooks::ReplacementService::new(thesaurus_data)
+                    .with_link_type(link_type_enum);
 
+                match replacement_service.replace(&text) {
+                    Ok(hook_result) => {
                         let mut contents = Vec::new();
                         contents.push(Content::text(format!(
-                            "Successfully replaced terms in text for role '{}' using {} format",
-                            role_name, link_type
+                            "Replaced {} term(s) for role '{}' using {} format",
+                            hook_result.replacements, role_name, link_type
                         )));
-                        contents.push(Content::text("Replaced text:".to_string()));
-                        contents.push(Content::text(replaced_text));
-
+                        contents.push(Content::text(hook_result.result));
                         Ok(CallToolResult::success(contents))
                     }
                     Err(e) => {
@@ -1035,11 +1029,6 @@ impl McpService {
         text: String,
         role: Option<String>,
     ) -> Result<CallToolResult, ErrorData> {
-        let mut service = self
-            .terraphim_service()
-            .await
-            .map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
-
         // Determine which role to use (provided role or selected role)
         let role_name = if let Some(role_str) = role {
             RoleName::from(role_str)
@@ -1082,65 +1071,75 @@ impl McpService {
             return Ok(CallToolResult::error(vec![error_content]));
         }
 
-        // Load thesaurus for the role to find matches
-        match service.ensure_thesaurus_loaded(&role_name).await {
-            Ok(thesaurus_data) => {
-                if thesaurus_data.is_empty() {
-                    let error_content = Content::text(format!(
-                        "No thesaurus data available for role '{}'. Please ensure the role has a properly configured and loaded knowledge graph.",
-                        role_name
-                    ));
-                    return Ok(CallToolResult::error(vec![error_content]));
-                }
-
-                // Find all term matches in the text
-                match terraphim_automata::find_matches(&text, thesaurus_data, false) {
-                    Ok(matches) => {
-                        if matches.is_empty() {
-                            let content = Content::text(format!(
-                                "No terms from role '{}' found in the provided text. Cannot check graph connectivity.",
-                                role_name
-                            ));
-                            return Ok(CallToolResult::success(vec![content]));
-                        }
-
-                        // Extract matched terms
-                        let matched_terms: Vec<String> =
-                            matches.iter().map(|m| m.term.clone()).collect();
-
-                        // Create a RoleGraph instance to check connectivity
-                        // For now, we'll use a simple approach by checking if we can build a graph
-                        // In a full implementation, you might want to load the actual graph structure
-                        let mut contents = Vec::new();
-                        contents.push(Content::text(format!(
-                            "Found {} matched terms in text for role '{}': {:?}",
-                            matched_terms.len(),
-                            role_name,
-                            matched_terms
-                        )));
-
-                        // Note: This is a placeholder implementation
-                        // The actual RoleGraph::is_all_terms_connected_by_path would need the graph structure
-                        contents.push(Content::text("Note: Graph connectivity check requires full graph structure loading. This is a preview of matched terms."));
-
-                        Ok(CallToolResult::success(contents))
-                    }
-                    Err(e) => {
-                        error!("Find matches failed: {}", e);
-                        let error_content = Content::text(format!("Find matches failed: {}", e));
-                        Ok(CallToolResult::error(vec![error_content]))
-                    }
-                }
-            }
-            Err(e) => {
-                error!("Failed to load thesaurus for role '{}': {}", role_name, e);
+        // Get the RoleGraphSync from config_state.roles
+        let rolegraph_sync = match self.config_state.roles.get(&role_name) {
+            Some(rg) => rg,
+            None => {
                 let error_content = Content::text(format!(
-                    "Failed to load thesaurus for role '{}': {}. Please ensure the role has a valid knowledge graph configuration.",
-                    role_name, e
+                    "RoleGraph not loaded for role '{}'. The role may not have been initialized with a knowledge graph. Available loaded roles: {:?}",
+                    role_name,
+                    self.config_state.roles.keys().collect::<Vec<_>>()
                 ));
-                Ok(CallToolResult::error(vec![error_content]))
+                return Ok(CallToolResult::error(vec![error_content]));
             }
+        };
+
+        // Lock the RoleGraph and check connectivity
+        let rolegraph = rolegraph_sync.lock().await;
+
+        // First, find matched terms for reporting
+        let matched_terms = rolegraph.find_matching_node_ids(&text);
+
+        if matched_terms.is_empty() {
+            let content = Content::text(format!(
+                "No terms from role '{}' knowledge graph found in the provided text. Cannot check graph connectivity.",
+                role_name
+            ));
+            return Ok(CallToolResult::success(vec![content]));
         }
+
+        // Check actual graph connectivity using the real implementation
+        let is_connected = rolegraph.is_all_terms_connected_by_path(&text);
+
+        // Build response with detailed information
+        let mut contents = Vec::new();
+
+        // Get term names for the matched node IDs
+        let term_names: Vec<String> = matched_terms
+            .iter()
+            .filter_map(|node_id| {
+                rolegraph
+                    .ac_reverse_nterm
+                    .get(node_id)
+                    .map(|nterm| nterm.to_string())
+            })
+            .collect();
+
+        contents.push(Content::text(format!(
+            "Graph Connectivity Result for role '{}':\n\
+             - Connected: {}\n\
+             - Matched terms count: {}\n\
+             - Matched terms: {:?}",
+            role_name,
+            is_connected,
+            matched_terms.len(),
+            term_names
+        )));
+
+        if is_connected {
+            contents.push(Content::text(
+                "All matched terms are connected by a single path in the knowledge graph, indicating semantic coherence."
+            ));
+        } else {
+            contents.push(Content::text(
+                "The matched terms are NOT all connected by a single path. This may indicate:\n\
+                 - The text spans multiple unrelated concepts\n\
+                 - Some terms are isolated in the knowledge graph\n\
+                 - The knowledge graph may need additional edges",
+            ));
+        }
+
+        Ok(CallToolResult::success(contents))
     }
 }
 
@@ -1349,11 +1348,12 @@ impl ServerHandler for McpService {
             Tool {
                 name: "search".into(),
                 title: Some("Search Knowledge Graph".into()),
-                description: Some("Search for documents in the Terraphim knowledge graph".into()),
+                description: Some("Search for documents in Terraphim knowledge graph".into()),
                 input_schema: Arc::new(search_map),
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "update_config_tool".into(),
@@ -1363,6 +1363,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "build_autocomplete_index".into(),
@@ -1372,6 +1373,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "fuzzy_autocomplete_search".into(),
@@ -1381,6 +1383,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "autocomplete_terms".into(),
@@ -1390,6 +1393,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "autocomplete_with_snippets".into(),
@@ -1399,6 +1403,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "fuzzy_autocomplete_search_levenshtein".into(),
@@ -1408,6 +1413,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "fuzzy_autocomplete_search_jaro_winkler".into(),
@@ -1417,6 +1423,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "serialize_autocomplete_index".into(),
@@ -1430,6 +1437,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "deserialize_autocomplete_index".into(),
@@ -1445,6 +1453,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "find_matches".into(),
@@ -1454,6 +1463,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "replace_matches".into(),
@@ -1463,6 +1473,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "extract_paragraphs_from_automata".into(),
@@ -1472,6 +1483,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "json_decode".into(),
@@ -1481,6 +1493,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "load_thesaurus".into(),
@@ -1490,6 +1503,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "load_thesaurus_from_json".into(),
@@ -1499,6 +1513,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             },
             Tool {
                 name: "is_all_terms_connected_by_path".into(),
@@ -1508,6 +1523,7 @@ impl ServerHandler for McpService {
                 output_schema: None,
                 annotations: None,
                 icons: None,
+                meta: None,
             }
         ];
 

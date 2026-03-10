@@ -4,8 +4,8 @@
 
 Terraphim AI is a privacy-first, locally-running AI assistant featuring multi-agent systems, knowledge graph intelligence, and secure code execution in Firecracker microVMs. The project combines Rust-based backend services with vanilla JavaScript frontends, emphasizing security, performance, and production-ready architecture.
 
-**Current Status**: Production-ready with active development on advanced features
-**Primary Technologies**: Rust (async/tokio), Svelte/Vanilla JS, Firecracker VMs, OpenRouter/Ollama LLMs
+**Current Status**: v1.0.0 RELEASED - Production-ready with comprehensive multi-language package ecosystem
+**Primary Technologies**: Rust (async/tokio), Svelte/Vanilla JS, Firecracker VMs, OpenRouter/Ollama LLMs, NAPI, PyO3
 **Test Coverage**: 99+ comprehensive tests with 59 passing in main workspace
 
 ## System Architecture
@@ -24,6 +24,13 @@ Terraphim AI is a privacy-first, locally-running AI assistant featuring multi-ag
 
 **Frontend Applications**:
 - **Desktop App** (Svelte + TypeScript + Tauri): Full-featured search and configuration UI
+  - **📖 Complete Specification**: [`docs/specifications/terraphim-desktop-spec.md`](../docs/specifications/terraphim-desktop-spec.md)
+  - 16 major sections covering architecture, features, data models, testing, deployment
+  - Technology: Svelte 5.2.8, Tauri 2.9.4, Bulma CSS, D3.js, Novel editor
+  - Features: Semantic search, knowledge graph visualization, AI chat, role-based config
+  - Integration: 9+ haystacks (Ripgrep, MCP, Atomic, ClickUp, Logseq, QueryRs, Atlassian, Discourse, JMAP)
+  - Testing: 50+ E2E tests, visual regression, performance benchmarks
+  - Deployment: Windows/macOS/Linux installers, auto-update, MCP server mode
 - **Agent Workflows** (Vanilla JavaScript): Five workflow pattern examples (prompt-chaining, routing, parallel, orchestration, optimization)
 - **TruthForge UI** (Vanilla JavaScript): Narrative analysis with real-time progress visualization
 
@@ -97,6 +104,46 @@ Terraphim AI is a privacy-first, locally-running AI assistant featuring multi-ag
 - Language restrictions and resource limits
 - Execution intent detection with confidence scoring
 - Isolated Firecracker microVM execution environment
+
+### GitHub Runner Integration
+
+**terraphim_github_runner** (Complete & Proven):
+- **Purpose**: GitHub Actions-style workflow runner with Firecracker VM integration
+- **Status**: ✅ Production-ready with 49 unit tests + 1 integration test passing
+- **Architecture**: ~2,800 lines of production Rust code across 6 modules
+
+**Key Capabilities**:
+- GitHub webhook processing into workflow contexts
+- Firecracker VM session management and lifecycle
+- HTTP-based command execution via fcctl-web API
+- Knowledge graph learning with pattern tracking
+- LLM-based workflow parsing from natural language
+
+**Core Modules**:
+1. **VM Executor** (235 LOC): HTTP client bridge to Firecracker API
+2. **Knowledge Graph** (420 LOC): Command pattern learning using automata
+3. **Learning Coordinator** (897 LOC): Success/failure tracking and statistics
+4. **Workflow Executor** (400+ LOC): Orchestration with snapshot management
+5. **Session Manager** (300+ LOC): VM lifecycle management with state tracking
+6. **LLM Parser** (200+ LOC): Natural language to structured workflow conversion
+
+**Performance Metrics**:
+- VM Creation: 5-10 seconds (including boot time)
+- Command Execution: 100-150ms typical latency
+- Learning Overhead: <10ms per operation
+
+**Integration Proven**:
+- ✅ Real Firecracker VM command execution verified
+- ✅ LearningCoordinator tracking success/failure patterns
+- ✅ Knowledge graph integration operational
+- ✅ Complete webhook-to-VM pipeline tested end-to-end
+
+**Configuration**:
+- `FIRECRACKER_API_URL`: API base URL (default: http://127.0.0.1:8080)
+- `FIRECRACKER_AUTH_TOKEN`: JWT token for authentication
+- `FIRECRACKER_VM_TYPE`: Default VM type (default: bionic-test)
+
+**Documentation**: HANDOVER.md, SSH_KEY_FIX.md, FIRECRACKER_FIX.md, TEST_USER_INIT.md
 
 ### Knowledge Graph and Search
 
@@ -217,11 +264,35 @@ cd desktop && yarn run check
 ### Development Workflow
 
 **Pre-commit Hooks** (Required in CI):
-- Conventional Commits format (feat:, fix:, docs:, test:)
+- Conventional Commits format (feat:, fix:, docs:, test:, refactor:)
 - Automatic cargo fmt for Rust code
 - Biome for JavaScript/TypeScript linting
 - Security checks (no secrets, large files)
 - Test coverage requirements
+
+**Testing Guidelines**:
+- Keep fast unit tests inline with `mod tests {}`; put multi-crate checks in `tests/` or `test_*.sh`
+- Scope runs with `cargo test -p crate test`; add regression coverage for new failure modes
+
+**Rust Performance Practices**:
+- Profile first (`cargo bench`, `cargo flamegraph`, `perf`) and land only measured wins
+- Borrow ripgrep tactics: reuse buffers with `with_capacity`, favor iterators, reach for `memchr`/SIMD
+- Apply inline directives sparingly—mark tiny wrappers `#[inline]`, keep cold errors `#[cold]`
+- Prefer zero-copy types (`&[u8]`, `bstr`) and parallelize CPU-bound graph work with `rayon`
+
+**Commit & PR Guidelines**:
+- Use Conventional Commit prefixes (`fix:`, `feat:`, `refactor:`) and keep changes scoped
+- Ensure commits pass `cargo fmt`, `cargo clippy`, required `cargo test`, and desktop checks
+- PRs should explain motivation, link issues, list manual verification commands
+
+**Configuration & Security Tips**:
+- Keep secrets in 1Password or `.env`. Use `build-env.sh` or `scripts/` helpers to bootstrap integrations
+- Wrap optional features (`openrouter`, `mcp-rust-sdk`) with graceful fallbacks for network failures
+
+**Important Rules**:
+- **Never use sleep before curl** - Use proper wait mechanisms instead
+- **Never use timeout command** - This command doesn't exist on macOS
+- **Never use mocks in tests** - Use real implementations
 
 **Commit Standards**:
 - Clear technical descriptions
@@ -244,6 +315,91 @@ cd desktop && yarn run check
 2. **Agent System** (6 crates): multi_agent, truthforge, agent_evolution, mcp_server, automata, rolegraph
 3. **Haystack Integration** (4 crates): atomic_client, clickup_client, query_rs_client, persistence
 4. **Infrastructure**: settings, tui, onepassword_cli, markdown_parser
+
+## 🎉 v1.0.0 Major Release Achievements
+
+### Multi-Language Package Ecosystem ✅
+
+**🦀 Rust - terraphim_agent (crates.io)**:
+- Complete CLI/TUI interface with REPL functionality
+- Sub-2 second startup times and 10MB optimized binary
+- Installation: `cargo install terraphim_agent`
+- Published with comprehensive documentation and examples
+
+**📦 Node.js - @terraphim/autocomplete (npm)**:
+- Native NAPI bindings with zero overhead
+- High-performance autocomplete engine using Aho-Corasick automata
+- Knowledge graph connectivity analysis and semantic search
+- Multi-platform support (Linux, macOS, Windows, ARM64)
+- Bun package manager optimization included
+- Installation: `npm install @terraphim/autocomplete`
+
+**🐍 Python - terraphim-automata (PyPI)**:
+- PyO3 bindings for maximum performance
+- Cross-platform wheels for all major platforms
+- Type hints and comprehensive documentation
+- Installation: `pip install terraphim-automata`
+
+### Enhanced Search Capabilities ✅
+
+**Grep.app Integration**:
+- Search across 500,000+ public GitHub repositories
+- Advanced filtering by language, repository, and path
+- Rate limiting and graceful error handling
+
+**Semantic Search Enhancement**:
+- Knowledge graph-powered semantic understanding
+- Context-aware relevance through graph connectivity
+- Multi-source integration (personal, team, public)
+
+### AI Integration & Automation ✅
+
+**MCP Server Implementation**:
+- Complete Model Context Protocol server for AI tool integration
+- All autocomplete and knowledge graph functions exposed as MCP tools
+- Transport support: stdio, SSE/HTTP with OAuth authentication
+
+**Claude Code Hooks**:
+- Automated workflows for seamless Claude Code integration
+- Template system for code analysis and evaluation
+- Quality assurance frameworks and comprehensive testing
+
+### Infrastructure Improvements ✅
+
+**CI/CD Migration**:
+- Complete migration from Earthly to GitHub Actions + Docker Buildx
+- Self-hosted runners for optimized build infrastructure
+- 1Password integration for secure token management
+- Multi-platform builds (Linux, macOS, Windows, ARM64)
+
+**10 Core Rust Crates Published**:
+1. terraphim_agent - Main CLI/TUI interface
+2. terraphim_automata - Text processing and autocomplete
+3. terraphim_rolegraph - Knowledge graph implementation
+4. terraphim_service - Main service layer
+5. terraphim_middleware - Haystack indexing and search
+6. terraphim_config - Configuration management
+7. terraphim_persistence - Storage abstraction
+8. terraphim_types - Shared type definitions
+9. terraphim_settings - Device and server settings
+10. terraphim_mcp_server - MCP server implementation
+
+### Performance Metrics ✅
+
+**Autocomplete Engine**:
+- Index Size: ~749 bytes for full engineering thesaurus
+- Search Speed: Sub-millisecond prefix search
+- Memory Efficiency: Compact serialized data structures
+
+**Knowledge Graph**:
+- Graph Size: ~856 bytes for complete role graphs
+- Connectivity Analysis: Instant path validation
+- Query Performance: Optimized graph traversal algorithms
+
+**Native Binaries**:
+- Binary Size: ~10MB (production optimized)
+- Startup Time: Sub-2 second CLI startup
+- Cross-Platform: Native performance on all supported platforms
 
 ## Development Patterns and Best Practices
 
@@ -390,6 +546,7 @@ cd desktop && yarn run check
 - **README.md** (290 lines): Project overview, installation, key features, terminology
 - **CONTRIBUTING.md**: Setup, code quality standards, development workflow
 - **TESTING_SCRIPTS_README.md** (363 lines): Comprehensive testing script documentation
+- **docs/specifications/terraphim-desktop-spec.md** (12,000 words): Complete technical specification for Terraphim Desktop application
 - **memories.md** (1867 lines): Development history and session-based progress tracking
 - **lessons-learned.md**: Critical technical insights and development patterns
 - **scratchpad.md**: Active task management and current work tracking
@@ -410,6 +567,8 @@ cd desktop && yarn run check
 - `examples/truthforge-ui/`: TruthForge narrative analysis UI (vanilla JS)
 - `scripts/`: Deployment and automation scripts
 - `docs/`: Project documentation and guides
+  - `docs/specifications/`: Technical specification documents
+    - `terraphim-desktop-spec.md`: Complete desktop application specification (~12,000 words)
 
 ## Summary Statistics
 
@@ -446,4 +605,4 @@ cd desktop && yarn run check
 
 ---
 
-*This summary consolidates information from 8 individual file summaries: CLAUDE.md, README.md, Cargo.toml, TESTING_SCRIPTS_README.md, CONTRIBUTING.md, lessons-learned.md, scratchpad.md, and memories.md. Last updated: 2025-11-04*
+*This summary consolidates information from 8 individual file summaries: CLAUDE.md, README.md, Cargo.toml, TESTING_SCRIPTS_README.md, CONTRIBUTING.md, lessons-learned.md, scratchpad.md, and memories.md. Last updated: 2025-12-03*

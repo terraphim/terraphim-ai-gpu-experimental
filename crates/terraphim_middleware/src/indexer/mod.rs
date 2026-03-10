@@ -5,7 +5,9 @@ use crate::{Error, Result};
 
 mod ripgrep;
 
-#[cfg(feature = "atomic")]
+#[cfg(feature = "ai-assistant")]
+use crate::haystack::AiAssistantHaystackIndexer;
+#[cfg(feature = "terraphim_atomic_client")]
 use crate::haystack::AtomicHaystackIndexer;
 use crate::haystack::{
     ClickUpHaystackIndexer, GrepAppHaystackIndexer, McpHaystackIndexer, PerplexityHaystackIndexer,
@@ -42,7 +44,7 @@ pub async fn search_haystacks(
     let needle = search_query.search_term.as_str();
 
     let ripgrep = RipgrepIndexer::default();
-    #[cfg(feature = "atomic")]
+    #[cfg(feature = "terraphim_atomic_client")]
     let atomic = AtomicHaystackIndexer::default();
     let query_rs = QueryRsHaystackIndexer::default();
     let clickup = ClickUpHaystackIndexer::default();
@@ -63,12 +65,12 @@ pub async fn search_haystacks(
                 ripgrep.index(needle, haystack).await?
             }
             ServiceType::Atomic => {
-                #[cfg(feature = "atomic")]
+                #[cfg(feature = "terraphim_atomic_client")]
                 {
                     // Search through documents using atomic-server
                     atomic.index(needle, haystack).await?
                 }
-                #[cfg(not(feature = "atomic"))]
+                #[cfg(not(feature = "terraphim_atomic_client"))]
                 {
                     log::warn!(
                         "Atomic haystack support not enabled. Skipping haystack: {}",
@@ -106,6 +108,22 @@ pub async fn search_haystacks(
                 // Search using grep.app for code across GitHub repositories
                 let grep_app = GrepAppHaystackIndexer::default();
                 grep_app.index(needle, haystack).await?
+            }
+            ServiceType::AiAssistant => {
+                #[cfg(feature = "ai-assistant")]
+                {
+                    // Search through AI coding assistant session logs
+                    let ai_assistant = AiAssistantHaystackIndexer;
+                    ai_assistant.index(needle, haystack).await?
+                }
+                #[cfg(not(feature = "ai-assistant"))]
+                {
+                    log::warn!(
+                        "AI assistant haystack support not enabled. Skipping haystack: {}",
+                        haystack.location
+                    );
+                    Index::new()
+                }
             }
         };
 

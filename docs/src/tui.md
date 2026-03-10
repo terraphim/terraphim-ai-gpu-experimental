@@ -17,7 +17,7 @@ cargo build -p terraphim_tui --features repl,repl-chat,repl-file,repl-mcp --rele
 cargo build -p terraphim_tui --release
 ```
 
-Binary: `terraphim-tui`
+Binary: `terraphim-agent`
 
 Set the server URL (defaults to `http://localhost:8000`):
 
@@ -31,12 +31,13 @@ export TERRAPHIM_SERVER=http://localhost:8000
 - `repl-chat` - AI chat integration with OpenRouter and Ollama
 - `repl-file` - Enhanced file operations with semantic awareness
 - `repl-mcp` - Model Context Protocol (MCP) tools integration
+- `repl-sessions` - AI coding session history search (Claude Code, Cursor, Aider)
 - `repl-full` - All features enabled (recommended)
 
 ## Interactive REPL Mode
 
 ```bash
-terraphim-tui
+terraphim-agent
 ```
 
 The TUI provides a comprehensive REPL (Read-Eval-Print Loop) with access to all features:
@@ -75,38 +76,51 @@ The TUI provides a comprehensive REPL (Read-Eval-Print Loop) with access to all 
 **AI Chat:**
 - `/chat "message"` - Interactive AI conversation
 
+**Session Search** (requires `repl-sessions` feature):
+- `/sessions sources` - Detect available session sources
+- `/sessions import [source] [--limit N]` - Import sessions
+- `/sessions list [source] [--limit N]` - List imported sessions
+- `/sessions search "query"` - Full-text search across sessions
+- `/sessions stats` - Show session statistics
+- `/sessions show <id>` - Show session details
+- `/sessions concepts "term"` - Knowledge graph concept search
+- `/sessions related <id> [--min N]` - Find related sessions
+- `/sessions timeline [--group day|week|month]` - Timeline view
+- `/sessions export [--format json|md] [--output file]` - Export sessions
+- `/sessions enrich [id]` - Enrich with knowledge graph concepts
+
 ## CLI subcommands
 
 Traditional CLI commands are also supported:
 
 - **Search**
   ```bash
-  terraphim-tui search --query "terraphim-graph" --role "Default" --limit 10
+  terraphim-agent search --query "terraphim-graph" --role "Default" --limit 10
   ```
 
 - **Roles**
   ```bash
-  terraphim-tui roles list
-  terraphim-tui roles select "Default"
+  terraphim-agent roles list
+  terraphim-agent roles select "Default"
   ```
 
 - **Config**
   ```bash
-  terraphim-tui config show
-  terraphim-tui config set selected_role=Default
-  terraphim-tui config set global_shortcut=Ctrl+X
-  terraphim-tui config set role.Default.theme=spacelab
+  terraphim-agent config show
+  terraphim-agent config set selected_role=Default
+  terraphim-agent config set global_shortcut=Ctrl+X
+  terraphim-agent config set role.Default.theme=spacelab
   ```
 
 - **Rolegraph (ASCII)**
   ```bash
-  terraphim-tui graph --role "Default" --top-k 10
+  terraphim-agent graph --role "Default" --top-k 10
   # Prints: - [rank] label -> neighbor1, neighbor2, ...
   ```
 
 - **Chat** (OpenRouter/Ollama)
   ```bash
-  terraphim-tui chat --role "Default" --prompt "Summarize terraphim graph" --model anthropic/claude-3-sonnet
+  terraphim-agent chat --role "Default" --prompt "Summarize terraphim graph" --model anthropic/claude-3-sonnet
   ```
 
 ## Behavior
@@ -145,6 +159,38 @@ Traditional CLI commands are also supported:
 - Context-aware conversations
 - Role-based AI interactions
 - Streaming responses (planned)
+
+### Session Search
+- Multi-source support: Claude Code, Cursor, Aider, OpenCode
+- Full-text search across all messages and metadata
+- Knowledge graph concept enrichment for semantic search
+- Related session discovery by shared concepts
+- Timeline visualization by day, week, or month
+- Export to JSON or Markdown formats
+- Session statistics and analytics
+
+**Supported Sources:**
+
+| Source | Location | Description |
+|--------|----------|-------------|
+| claude-code-native | `~/.claude/projects/` | Native Claude Code sessions |
+| claude-code | `~/.claude/projects/` | CLA-parsed Claude Code sessions |
+| cursor | `~/.cursor/` | Cursor IDE sessions |
+| aider | `.aider.chat.history.md` | Aider chat history |
+
+**Example Workflow:**
+
+```bash
+# Launch REPL
+terraphim-agent
+
+# In REPL:
+/sessions sources              # See available sources
+/sessions import --limit 100   # Import sessions
+/sessions search "rust async"  # Search for topics
+/sessions concepts "error"     # Concept-based search
+/sessions timeline --group week # View timeline
+```
 
 ## Roadmap
 

@@ -4,9 +4,43 @@ This guide covers all available methods to install and deploy Terraphim AI, from
 
 ## 🚀 Quick Start
 
-### Option 1: Docker (Recommended for Beginners)
+### Option 1: Universal Installer (Recommended)
 
-Docker is the easiest way to get Terraphim AI running quickly with all dependencies handled automatically.
+The universal installer provides a single-command installation for all platforms with automatic platform detection and security verification.
+
+```bash
+# Install terraphim-agent (default)
+curl -fsSL https://raw.githubusercontent.com/terraphim/terraphim-ai/main/scripts/install.sh | bash
+
+# Install both agent and CLI tools
+curl -fsSL https://raw.githubusercontent.com/terraphim/terraphim-ai/main/scripts/install.sh | bash --with-cli
+
+# Install to custom directory
+curl -fsSL https://raw.githubusercontent.com/terraphim/terraphim-ai/main/scripts/install.sh | bash --install-dir /usr/local/bin
+```
+
+**Features:**
+- ✅ Cross-platform support (Linux, macOS, Windows/WSL)
+- ✅ Automatic platform detection
+- ✅ Security verification with checksums
+- ✅ Pre-built binaries when available
+- ✅ Fallback to source compilation
+- ✅ Multiple installation options
+
+**Installation Options:**
+```bash
+--install-dir DIR       Custom installation directory (default: ~/.local/bin)
+--with-cli              Also install terraphim-cli (automation-focused CLI)
+--cli-only              Install only terraphim-cli
+--version VERSION       Install specific version (default: latest)
+--skip-verify           Skip checksum verification (not recommended)
+--verbose               Enable verbose logging
+--help, -h              Show help message
+```
+
+### Option 2: Docker (Container-based)
+
+Docker provides an isolated environment with all dependencies handled automatically.
 
 ```bash
 # One-command Docker installation
@@ -34,8 +68,8 @@ wget https://github.com/terraphim/terraphim-ai/releases/download/v0.2.3/terraphi
 sudo dpkg -i terraphim-server_0.2.3-1_amd64.deb
 
 # Download and install TUI (optional)
-wget https://github.com/terraphim/terraphim-ai/releases/download/v0.2.3/terraphim-tui_0.2.3-1_amd64.deb
-sudo dpkg -i terraphim-tui_0.2.3-1_amd64.deb
+wget https://github.com/terraphim/terraphim-ai/releases/download/v0.2.3/terraphim-agent_0.2.3-1_amd64.deb
+sudo dpkg -i terraphim-agent_0.2.3-1_amd64.deb
 
 # Start the server
 sudo systemctl start terraphim-server
@@ -50,8 +84,8 @@ wget https://github.com/terraphim/terraphim-ai/releases/download/v0.2.3/terraphi
 sudo pacman -U terraphim-server-0.2.3-1-x86_64.pkg.tar.zst
 
 # Install TUI (optional)
-wget https://github.com/terraphim/terraphim-ai/releases/download/v0.2.3/terraphim-tui-0.2.3-1-x86_64.pkg.tar.zst
-sudo pacman -U terraphim-tui-0.2.3-1-x86_64.pkg.tar.zst
+wget https://github.com/terraphim/terraphim-ai/releases/download/v0.2.3/terraphim-agent-0.2.3-1-x86_64.pkg.tar.zst
+sudo pacman -U terraphim-agent-0.2.3-1-x86_64.pkg.tar.zst
 
 # Start the server
 sudo systemctl start terraphim-server
@@ -272,25 +306,25 @@ The TUI provides a command-line interface with advanced features:
 
 ```bash
 # Show help
-terraphim-tui --help
+terraphim-agent --help
 
 # Search with TUI
-terraphim-tui search "rust programming" --limit 20
+terraphim-agent search "rust programming" --limit 20
 
 # Multi-term search
-terraphim-tui search "rust" --terms "async,await" --operator and
+terraphim-agent search "rust" --terms "async,await" --operator and
 
 # List available roles
-terraphim-tui roles list
+terraphim-agent roles list
 
 # Switch role
-terraphim-tui search "web" --role "System Operator"
+terraphim-agent search "web" --role "System Operator"
 
 # Interactive mode
-terraphim-tui interactive
+terraphim-agent interactive
 
 # REPL mode
-terraphim-tui repl
+terraphim-agent repl
 ```
 
 ### API Usage
