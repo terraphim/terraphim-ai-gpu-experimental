@@ -45,3 +45,24 @@ scratchpad/
 tmp/
 2025-*.txt
 slash_command.txt
+
+# Release build artifacts
+releases/
+*.vsix
+*.tar.gz
+*.dmg
+build-cross-platform/
+
+# Browser extension builds
+dist/browser-extensions/*.zip
+
+# Documentation GIFs and generated files
+docs/gifs/*.gif
+docs/mermaid.min.js
+
+# Profiling data
+perf.data
+perf.data.old
+
+# Playwright screenshots
+.playwright-mcp/*.png
