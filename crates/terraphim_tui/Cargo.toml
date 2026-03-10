@@ -42,7 +42,7 @@ chrono = { version = "0.4", features = ["serde"] }
 # REPL dependencies - only compiled with features
 rustyline = { version = "14.0", optional = true }
 colored = { version = "3.0", optional = true }
-comfy-table = { version = "7.0", optional = true }
+comfy-table = { version = "7.2", optional = true }
 indicatif = { version = "0.18", optional = true }
 dirs = { version = "5.0", optional = true }
 
