@@ -27,7 +27,7 @@ fastrand = "2.0"
 toml = "0.9"
 
 [dev-dependencies]
-tempfile = "3.0"
+tempfile = "3.26"
 test-log = "0.2"
 
 [[bin]]

@@ -51,7 +51,7 @@ terraphim_service = { path = "../terraphim_service" }
 
 [dev-dependencies]
 tokio-test = "0.4"
-tempfile = "3.23"
+tempfile = "3.26"
 criterion = { version = "0.5", features = ["html_reports"] }
 # Enable test-utils for examples and benchmarks
 terraphim_multi_agent = { path = ".", features = ["test-utils"] }
